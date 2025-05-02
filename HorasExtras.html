@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Horas Extras</title>
+    <style>
+        /* --- Estilos CSS (sin cambios respecto a la versión anterior optimizada para móviles) --- */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --background-color: #f5f7fa;
+            --text-color: #333;
+            --border-color: #ddd;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #1abc9c; /* Color para tarjeta extras */
+            --excel-highlight-color: #90EE90; /* Verde claro para Excel */
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--background-color); color: var(--text-color); line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 15px; }
+        header { background-color: var(--primary-color); color: white; padding: 15px 0; margin-bottom: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { text-align: center; font-size: 1.8em; }
+        h2 { text-align: center; font-size: 1.5em; margin-bottom: 15px; }
+        h3 { text-align: center; font-size: 1.2em; margin-bottom: 10px; }
+        .card { background: white; border-radius: 5px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        .date-filter-controls .controls-wrapper { display: flex; gap: 10px; }
+        .date-filter-controls .controls-wrapper select { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1em; background-color: #fff; }
+        input[type="date"], input[type="time"] { appearance: none; -webkit-appearance: none; min-height: 40px; }
+        .btn { background-color: var(--accent-color); color: white; border: none; padding: 12px 18px; border-radius: 4px; cursor: pointer; font-size: 1em; transition: background-color 0.3s; text-decoration: none; display: inline-block; text-align: center; width: auto; }
+        .btn:hover { background-color: #2980b9; }
+        .btn-success { background-color: var(--success-color); } .btn-success:hover { background-color: #219653; }
+        .btn-warning { background-color: var(--warning-color); } .btn-warning:hover { background-color: #e67e22; }
+        .btn-danger { background-color: var(--danger-color); } .btn-danger:hover { background-color: #c0392b; }
+        #horas-extras-form button[type="submit"] { width: 100%; }
+        .table-responsive { overflow-x: auto; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 4px; -webkit-overflow-scrolling: touch; }
+        /* Ajustado min-width por quitar columna */
+        table { width: 100%; border-collapse: collapse; min-width: 580px; }
+        th, td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: left; vertical-align: middle; white-space: nowrap; }
+        th { background-color: var(--secondary-color); color: white; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .action-buttons { display: flex; gap: 8px; justify-content: center; align-items: center; white-space: nowrap; }
+        .action-buttons .btn { padding: 6px 10px; font-size: 0.9em; }
+        .summary-section { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
+        .summary-card { flex: 1; min-width: 160px; background: white; border-radius: 5px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .summary-card.overtime .summary-value { color: var(--info-color); }
+        .summary-card h3 { font-size: 1.1em; margin-bottom: 5px; color: var(--secondary-color);}
+        .summary-value { font-size: 1.7em; font-weight: bold; color: var(--accent-color); margin: 8px 0; }
+        .tabs { display: flex; margin-bottom: 20px; border-radius: 5px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background-color: #e9ecef; }
+        .tab { padding: 12px 15px; cursor: pointer; background-color: transparent; border: none; border-right: 1px solid var(--border-color); flex: 1; text-align: center; transition: background-color 0.3s, color 0.3s; font-weight: 500; color: var(--secondary-color); }
+        .tab:last-child { border-right: none; }
+        .tab.active { background-color: var(--accent-color); color: white; }
+        .tab-content { display: none; } .tab-content.active { display: block; }
+        .chart-container { position: relative; height: 300px; margin: 25px 0; width: 100%; }
+
+        /* --- Media Queries (sin cambios) --- */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            h1 { font-size: 1.6em; } h2 { font-size: 1.3em; } h3 { font-size: 1.1em; }
+            .tabs { flex-direction: column; }
+            .tab { border-right: none; border-bottom: 1px solid var(--border-color); }
+            .tab:last-child { border-bottom: none; }
+            .date-filter-controls .controls-wrapper { flex-direction: column; gap: 15px; }
+            .date-filter-controls .controls-wrapper select { width: 100%; }
+            .summary-section { flex-direction: column; gap: 15px; }
+            .summary-card { min-width: 100%; }
+            .action-buttons { flex-direction: column; align-items: stretch; gap: 5px; }
+            .action-buttons .btn { width: 100%; }
+            th, td { padding: 8px 10px; white-space: normal; }
+            .chart-container { height: 250px; }
+        }
+        @media (max-width: 480px) {
+            body { font-size: 15px; } .btn { padding: 10px 15px; }
+            input, select { padding: 8px 10px; } h1 { font-size: 1.4em; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Control de Horas Extras</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Pestañas -->
+        <div class="tabs">
+            <div class="tab active" data-tab="registro">Registro Diario</div>
+            <div class="tab" data-tab="historial">Historial</div>
+            <div class="tab" data-tab="reportes">Reportes</div>
+        </div>
+        
+        <!-- Contenido Pestaña Registro -->
+        <div id="registro" class="tab-content active">
+            <div class="card">
+                <h2>Registrar Jornada Laboral</h2>
+                <form id="horas-extras-form">
+                    <div class="form-group">
+                        <label for="fecha">Fecha:</label>
+                        <input type="date" id="fecha" name="fecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hora-inicio">Hora de Entrada:</label>
+                        <input type="time" id="hora-inicio" name="hora-inicio" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hora-fin">Hora de Salida:</label>
+                        <input type="time" id="hora-fin" name="hora-fin" required>
+                    </div>
+                    <div class="form-group">
+                        <!-- Etiqueta actualizada y campo ya no es required -->
+                        <label for="descripcion">Descripción / Tareas (Opcional):</label>
+                        <input type="text" id="descripcion" name="descripcion" placeholder="Breve descripción de la jornada">
+                    </div>
+                    <!-- Campo "Autorizado por" eliminado -->
+                    <button type="submit" class="btn btn-success">Guardar Jornada</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h3>Jornadas Registradas del Mes Actual</h3>
+                <div class="table-responsive">
+                    <table id="tabla-mes-actual">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Hrs Trabajadas</th>
+                                <th>Descripción</th>
+                                <!-- Columna Autorizado eliminada -->
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody><!-- Filas generadas por JS --></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contenido Pestaña Historial -->
+        <div id="historial" class="tab-content">
+            <div class="card">
+                <h2>Historial de Jornadas</h2>
+                <div class="form-group date-filter-controls">
+                    <label for="filtro-mes">Filtrar por mes y año:</label>
+                    <div class="controls-wrapper">
+                        <select id="filtro-mes">
+                            <option value="">Todos los meses</option>
+                            <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+                        </select>
+                        <select id="filtro-anio"><option value="">Todos</option></select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tabla-historial">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Hrs Trabajadas</th>
+                                <th>Descripción</th>
+                                <!-- Columna Autorizado eliminada -->
+                            </tr>
+                        </thead>
+                        <tbody><!-- Filas generadas por JS --></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contenido Pestaña Reportes -->
+        <div id="reportes" class="tab-content">
+            <div class="card">
+                <h2>Reportes Mensuales</h2>
+                 <div class="form-group date-filter-controls">
+                    <label for="reporte-mes">Seleccionar mes y año:</label>
+                    <div class="controls-wrapper">
+                        <select id="reporte-mes">
+                            <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+                        </select>
+                         <select id="reporte-anio"><!-- Años generados por JS --></select>
+                    </div>
+                </div>
+                <div class="summary-section">
+                    <div class="summary-card">
+                        <h3>Total Horas Trabajadas</h3>
+                        <div class="summary-value" id="total-horas">0h 0m</div>
+                    </div>
+                    <div class="summary-card overtime">
+                        <h3>Total Horas Extras</h3>
+                        <div class="summary-value" id="total-horas-extras">0h 0m</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Días Trabajados</h3>
+                        <div class="summary-value" id="dias-trabajados">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Promedio Hrs Trabajadas</h3>
+                        <div class="summary-value" id="promedio-diario">0h 0m</div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="horas-chart"></canvas></div>
+                <button id="exportar-excel" class="btn btn-warning">Exportar a Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependencias externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- ** IMPORTANTE: Usando xlsx-js-style para formato Excel ** -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
+    
+    <script>
+        // ==================================================================
+        //                  CONTROL DE HORAS EXTRAS - SCRIPT v3
+        //      (Sin Autorizado, Desc Opcional, Resumen Excel con Estilo)
+        // ==================================================================
+
+        // --- Estado Global y Constantes ---
+        let horasExtras = [];
+        const LOCAL_STORAGE_KEY = 'horasExtrasData_v3'; // Nueva clave por cambios
+        let horasChartInstance = null;
+        const HORAS_ESTANDAR_DIARIAS = 8;
+
+        // --- Funciones de Gestión de Datos ---
+        function cargarDatos() {
+             try {
+                 const datosGuardados = localStorage.getItem(LOCAL_STORAGE_KEY);
+                 horasExtras = datosGuardados ? JSON.parse(datosGuardados) : [];
+                 horasExtras.forEach(r => r.horas = parseFloat(r.horas) || 0);
+                 console.log(`Datos cargados (${horasExtras.length} registros).`);
+             } catch (error) {
+                 console.error('Error al cargar datos:', error); horasExtras = [];
+                 alert('Error al cargar datos guardados.');
+             }
+         }
+         function guardarDatos() {
+             try {
+                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(horasExtras));
+                 console.log(`Datos guardados (${horasExtras.length} registros).`);
+             } catch (error) {
+                 console.error('Error al guardar datos:', error);
+                 alert('Error al guardar los cambios.');
+             }
+         }
+
+        // --- Funciones de Utilidad y Cálculo ---
+        function calcularHorasTrabajadas(fecha, inicio, fin) {
+             if (!fecha || !inicio || !fin) return 0;
+             try {
+                 const tInicio = new Date(`${fecha}T${inicio}`).getTime();
+                 let tFin = new Date(`${fecha}T${fin}`).getTime();
+                 if (isNaN(tInicio) || isNaN(tFin)) return 0;
+                 if (tFin <= tInicio) tFin += 86400000; // 24h en ms
+                 const diff = tFin - tInicio;
+                 return diff > 0 ? diff / 3600000 : 0; // ms a horas
+             } catch (e) { return 0; }
+         }
+         function calcularHorasExtrasDiarias(registro) {
+             if (!registro || !registro.fecha || isNaN(registro.horas)) return 0;
+             const fechaObj = new Date(`${registro.fecha}T12:00:00`);
+             const diaSemana = fechaObj.getDay(); // 0=Dom, 1=Lun ... 6=Sab
+             if (diaSemana >= 1 && diaSemana <= 5) { // Lunes a Viernes
+                 return Math.max(0, registro.horas - HORAS_ESTANDAR_DIARIAS);
+             }
+             return 0; // Fin de semana
+         }
+         function formatearHoras(horasDecimales) {
+             if (isNaN(horasDecimales) || horasDecimales <= 0) return '0h 0m';
+             const totalMinutos = Math.round(horasDecimales * 60);
+             const h = Math.floor(totalMinutos / 60); const m = totalMinutos % 60;
+             return `${h}h ${m}m`;
+         }
+         function obtenerAniosUnicos() {
+             const anios = new Set(horasExtras.map(r => new Date(r.fecha).getFullYear()));
+             if (anios.size === 0) return [new Date().getFullYear()];
+             return Array.from(anios).sort((a, b) => b - a);
+         }
+         function rellenarSelectoresAnio() {
+            const anios = obtenerAniosUnicos();
+            const selectores = [ document.getElementById('filtro-anio'), document.getElementById('reporte-anio') ];
+            selectores.forEach(select => {
+                const valorActual = select.value; select.innerHTML = '';
+                if (select.id === 'filtro-anio') select.add(new Option('Todos', ''));
+                anios.forEach(anio => select.add(new Option(anio, anio)));
+                if (valorActual && anios.includes(parseInt(valorActual))) select.value = valorActual;
+                else if (select.id === 'reporte-anio' && anios.length > 0) select.value = anios[0];
+                else if (select.id === 'filtro-anio') select.value = "";
+            });
+         }
+         function obtenerNombreMes(numeroMes) {
+             const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+             return meses[parseInt(numeroMes)] || '';
+         }
+
+        // --- Funciones de Actualización de UI ---
+        function actualizarTabla(tbodyElement, registros, esTablaMesActual = false) {
+             tbodyElement.innerHTML = '';
+             // Ajustar colspan basado en si es la tabla actual (con acciones) o historial
+             const colSpan = esTablaMesActual ? 6 : 5;
+             if (!registros || registros.length === 0) {
+                 tbodyElement.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 20px; white-space: normal;">No hay jornadas registradas.</td></tr>`;
+                 return;
+             }
+             registros.forEach(registro => {
+                 const fechaFmt = new Date(`${registro.fecha}T00:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                 const tr = document.createElement('tr');
+                 // Se quita la columna de Autorizado
+                 tr.innerHTML = `
+                     <td>${fechaFmt}</td>
+                     <td>${registro.horaInicio}</td>
+                     <td>${registro.horaFin}</td>
+                     <td>${formatearHoras(registro.horas)} (${registro.horas.toFixed(2)})</td>
+                     <td style="white-space: normal;">${registro.descripcion || '-'}</td>
+                     ${esTablaMesActual ? `
+                     <td>
+                         <div class="action-buttons">
+                             <button class="btn btn-danger btn-sm" onclick="eliminarRegistro(${registro.id})">Eliminar</button>
+                         </div>
+                     </td>` : ''}
+                 `;
+                 tbodyElement.appendChild(tr);
+             });
+         }
+         function actualizarTablaMesActual() {
+             const tbody = document.getElementById('tabla-mes-actual').querySelector('tbody');
+             const hoy = new Date(); const mesA = hoy.getMonth(); const anioA = hoy.getFullYear();
+             const regs = horasExtras.filter(r => { const d=new Date(r.fecha); return d.getMonth()===mesA && d.getFullYear()===anioA; }).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+             actualizarTabla(tbody, regs, true);
+         }
+         function actualizarTablaHistorial() {
+             const tbody = document.getElementById('tabla-historial').querySelector('tbody');
+             const mesF = document.getElementById('filtro-mes').value; const anioF = document.getElementById('filtro-anio').value;
+             let regs = horasExtras;
+             if(anioF) regs = regs.filter(r => new Date(r.fecha).getFullYear() === parseInt(anioF));
+             if(mesF) regs = regs.filter(r => new Date(r.fecha).getMonth() === parseInt(mesF));
+             regs.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+             actualizarTabla(tbody, regs, false);
+         }
+         function actualizarReportes() {
+            const mesSel = parseInt(document.getElementById('reporte-mes').value);
+            const anioSel = parseInt(document.getElementById('reporte-anio').value);
+            const elTotalHoras = document.getElementById('total-horas');
+            const elTotalExtras = document.getElementById('total-horas-extras');
+            const elDiasTrab = document.getElementById('dias-trabajados');
+            const elPromDiario = document.getElementById('promedio-diario');
+            const chartCtx = document.getElementById('horas-chart').getContext('2d');
+
+            if (isNaN(anioSel)) {
+                 elTotalHoras.textContent = '0h 0m'; elTotalExtras.textContent = '0h 0m';
+                 elDiasTrab.textContent = '0'; elPromDiario.textContent = '0h 0m';
+                 if (horasChartInstance) { horasChartInstance.destroy(); horasChartInstance = null; }
+                 chartCtx.clearRect(0, 0, chartCtx.canvas.width, chartCtx.canvas.height);
+                 chartCtx.fillText("Selecciona mes y año.", chartCtx.canvas.width / 2, chartCtx.canvas.height / 2);
+                 return;
+            }
+
+            const regsMes = horasExtras.filter(r => { const d=new Date(r.fecha); return d.getMonth()===mesSel && d.getFullYear()===anioSel; });
+            let totalHorasTrabMes = 0, totalHorasExtrasMes = 0;
+            const diasTrabSet = new Set();
+            regsMes.forEach(r => {
+                totalHorasTrabMes += r.horas; totalHorasExtrasMes += calcularHorasExtrasDiarias(r);
+                diasTrabSet.add(r.fecha);
+            });
+            const diasTrab = diasTrabSet.size;
+            const promDiarioTrab = diasTrab > 0 ? totalHorasTrabMes / diasTrab : 0;
+
+            elTotalHoras.textContent = formatearHoras(totalHorasTrabMes);
+            elTotalExtras.textContent = formatearHoras(totalHorasExtrasMes);
+            elDiasTrab.textContent = diasTrab;
+            elPromDiario.textContent = formatearHoras(promDiarioTrab);
+
+            actualizarGrafico(regsMes, mesSel, anioSel);
+        }
+         function actualizarGrafico(registros, mes, anio) {
+            const ctx = document.getElementById('horas-chart').getContext('2d');
+            const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+            const labels = Array.from({length: diasEnMes}, (_, i) => i + 1);
+            const datosExtras = Array(diasEnMes).fill(0);
+            registros.forEach(r => { const d=new Date(`${r.fecha}T00:00:00`).getDate(); if(d>=1 && d<=diasEnMes) datosExtras[d-1]+=calcularHorasExtrasDiarias(r); });
+            if (horasChartInstance) horasChartInstance.destroy();
+            horasChartInstance = new Chart(ctx, {
+                type: 'bar', data: { labels: labels, datasets: [{ label: `Horas Extras - ${obtenerNombreMes(mes)} ${anio}`, data: datosExtras, backgroundColor: 'rgba(26, 188, 156, 0.7)', borderColor: 'rgba(22, 160, 133, 1)', borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Horas Extras' } }, x: { title: { display: true, text: 'Día del Mes' } } }, plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label||''}: ${formatearHoras(c.parsed.y)}` } } } }
+            });
+        }
+
+        // --- Acciones de Usuario ---
+        function agregarRegistro(evento) {
+            evento.preventDefault();
+            const form = evento.target;
+            const fecha = form.fecha.value; const horaInicio = form['hora-inicio'].value;
+            const horaFin = form['hora-fin'].value; const descripcion = form.descripcion.value.trim();
+            // Ya no se recoge 'autorizadoPor'
+            // La descripción ya no es required en HTML, no necesita validación aquí
+            if (!fecha || !horaInicio || !horaFin) {
+                alert('Completa Fecha, Hora Entrada y Hora Salida.'); return;
+            }
+            const horasTrabajadas = calcularHorasTrabajadas(fecha, horaInicio, horaFin);
+            if (horasTrabajadas <= 0) { alert('Horas trabajadas inválidas.'); return; }
+            const nuevoRegistro = { id: Date.now(), fecha, horaInicio, horaFin, horas: horasTrabajadas, descripcion }; // Sin autorizadoPor
+            horasExtras.push(nuevoRegistro);
+            guardarDatos(); actualizarTodo(); form.reset(); form.fecha.valueAsDate = new Date();
+            alert('Jornada guardada.');
+        }
+        function eliminarRegistro(id) {
+             if (confirm('¿Eliminar este registro de jornada?')) {
+                 horasExtras = horasExtras.filter(r => r.id !== id);
+                 guardarDatos(); actualizarTodo(); alert('Registro eliminado.');
+             }
+         }
+        function exportarExcel() {
+            const mesSel = parseInt(document.getElementById('reporte-mes').value);
+            const anioSel = parseInt(document.getElementById('reporte-anio').value);
+            if (isNaN(anioSel)) { alert("Selecciona un año válido."); return; }
+
+            const nombreMes = obtenerNombreMes(mesSel);
+            const registrosMes = horasExtras
+                .filter(r => { const d=new Date(r.fecha); return d.getMonth()===mesSel && d.getFullYear()===anioSel; })
+                .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            if (registrosMes.length === 0) { alert(`No hay registros para ${nombreMes} ${anioSel}.`); return; }
+
+            let totalHorasExtrasMes = 0;
+            const datosParaHoja = registrosMes.map(r => {
+                const horasExtrasDia = calcularHorasExtrasDiarias(r);
+                totalHorasExtrasMes += horasExtrasDia; // Acumular total para el resumen
+                return {
+                    'Fecha': new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-ES'),
+                    'Entrada': r.horaInicio, 'Salida': r.horaFin,
+                    'Hrs Trab (Dec)': r.horas.toFixed(2), 'Hrs Trab (Fmt)': formatearHoras(r.horas),
+                    'Hrs Extras (Dec)': horasExtrasDia.toFixed(2), 'Hrs Extras (Fmt)': formatearHoras(horasExtrasDia),
+                    'Descripción': r.descripcion || '-' // Mostrar '-' si está vacío
+                    // Sin columna Autorizado
+                };
+            });
+
+            // --- Preparación para Excel con Estilo ---
+            const wb = XLSX.utils.book_new();
+            const wsRegistros = XLSX.utils.json_to_sheet(datosParaHoja);
+
+            // --- Añadir fila de Resumen de Horas Extras al final de Registros ---
+            const filaResumen = [ // Array para la nueva fila
+                null, null, null, null, null, // Celdas vacías hasta la columna de texto
+                "TOTAL HORAS EXTRAS:", // Texto descriptivo
+                { // Objeto celda para el valor con estilo
+                    v: formatearHoras(totalHorasExtrasMes) + ` (${totalHorasExtrasMes.toFixed(2)})`,
+                    t: 's', // Tipo string
+                    s: { // Objeto de estilo (usando xlsx-js-style)
+                        font: { sz: 14, bold: true, color: { rgb: "FF000000" } }, // Tamaño 14, negrita
+                        fill: { fgColor: { rgb: "FF90EE90" } }, // Fondo Verde Claro (formato AARRGGBB)
+                        alignment: { horizontal: "right", vertical: "center" }
+                    }
+                },
+                 null // Celda vacía para descripción
+            ];
+            // Añadir la fila al final de la hoja existente
+            // La fila será la siguiente después de la cabecera (1) y los datos (datosParaHoja.length)
+            const numFilaResumen = datosParaHoja.length + 1;
+            XLSX.utils.sheet_add_aoa(wsRegistros, [filaResumen], { origin: `A${numFilaResumen + 1}` }); // origin es A(n+1) porque es 0-based
+
+            // Ajustar el rango de la hoja para incluir la nueva fila
+             const range = XLSX.utils.decode_range(wsRegistros['!ref']);
+             range.e.r = numFilaResumen; // La fila final es ahora numFilaResumen (0-based)
+             wsRegistros['!ref'] = XLSX.utils.encode_range(range);
+
+            // --- Hoja de Resumen General (sin cambios respecto a v2, excepto quitar Autorizado) ---
+            let totalHorasTrabajadas = registrosMes.reduce((sum, r) => sum + r.horas, 0);
+            const diasTrabajados = new Set(registrosMes.map(r => r.fecha)).size;
+            const promDiarioTrab = diasTrabajados > 0 ? totalHorasTrabajadas / diasTrabajados : 0;
+            const resumenParaHoja = [
+                 { C1: 'Resumen Mensual', C2: `${nombreMes} ${anioSel}` }, { C1: '', C2: '' },
+                 { C1: 'Total Horas Trabajadas', C2: formatearHoras(totalHorasTrabajadas) + ` (${totalHorasTrabajadas.toFixed(2)})` },
+                 { C1: 'Total Horas Extras', C2: formatearHoras(totalHorasExtrasMes) + ` (${totalHorasExtrasMes.toFixed(2)})` },
+                 { C1: 'Días Trabajados', C2: diasTrabajados },
+                 { C1: 'Promedio Diario Trabajado', C2: formatearHoras(promDiarioTrab) + ` (${promDiarioTrab.toFixed(2)})` },
+            ];
+            const wsResumen = XLSX.utils.json_to_sheet(resumenParaHoja, { header: ["C1", "C2"], skipHeader: true });
+
+            // Definir anchos de columna (ajustados por quitar Autorizado)
+            wsRegistros['!cols'] = [ {wch:10}, {wch:8}, {wch:8}, {wch:12}, {wch:12}, {wch:12}, {wch:18}, {wch:30} ]; // 8 columnas
+            wsResumen['!cols'] = [ {wch:25}, {wch:25} ];
+
+            // Añadir hojas al libro
+            XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen Mensual");
+            XLSX.utils.book_append_sheet(wb, wsRegistros, "Registros Jornadas");
+
+            // Descargar archivo
+            XLSX.writeFile(wb, `Horas_Extras_${nombreMes}_${anioSel}.xlsx`);
+        }
+
+
+        // --- Inicialización y Event Listeners ---
+        function actualizarTodo() {
+             rellenarSelectoresAnio(); actualizarTablaMesActual();
+             actualizarTablaHistorial(); actualizarReportes();
+         }
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarDatos();
+            const form = document.getElementById('horas-extras-form');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const fMes = document.getElementById('filtro-mes'), fAnio = document.getElementById('filtro-anio');
+            const rMes = document.getElementById('reporte-mes'), rAnio = document.getElementById('reporte-anio');
+            const btnExportar = document.getElementById('exportar-excel');
+
+            document.getElementById('fecha').valueAsDate = new Date();
+            form.addEventListener('submit', agregarRegistro);
+            btnExportar.addEventListener('click', exportarExcel);
+            fMes.addEventListener('change', actualizarTablaHistorial);
+            fAnio.addEventListener('change', actualizarTablaHistorial);
+            rMes.addEventListener('change', actualizarReportes);
+            rAnio.addEventListener('change', actualizarReportes);
+            tabs.forEach(tab => tab.addEventListener('click', () => {
+                const id = tab.dataset.tab;
+                tabs.forEach(t => t.classList.toggle('active', t === tab));
+                tabContents.forEach(c => c.classList.toggle('active', c.id === id));
+                if (id === 'reportes' && horasChartInstance) setTimeout(() => horasChartInstance.resize(), 50);
+            }));
+
+            const hoy = new Date(); rMes.value = hoy.getMonth();
+            actualizarTodo();
+            const anioActual = hoy.getFullYear();
+            if (Array.from(rAnio.options).some(opt => opt.value == anioActual)) rAnio.value = anioActual;
+            actualizarReportes();
+
+            console.log("Aplicación Horas Extras v3 inicializada.");
+        });
+    </script>
+</body>
+</html>
